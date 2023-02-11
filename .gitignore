@@ -1,0 +1,4 @@
+/post-chatwork/*.lock
+*/vendor
+/.env
+*.cache

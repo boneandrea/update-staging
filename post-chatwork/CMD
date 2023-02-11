@@ -1,0 +1,10 @@
+sudo apt install -y libkrb5-dev libsqlite3-dev libcurl4-openssl-dev libjpeg-dev libpng-dev oniguruma-dev libonig-dev libtidy-dev libxslt-dev libzip-dev libpq-dev
+phpenv update
+phpenv install 7.4.4
+phpenv local 7.4.4
+phpenv versions
+echo "--with-pdo-pgsql" >> ~/.anyenv/envs/phpenv/plugins/php-build/share/php-build/default_configure_options
+phpenv install 7.4.4
+phpenv local 7.4.4
+rehash
+php -v

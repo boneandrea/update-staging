@@ -1,0 +1,106 @@
+#!/bin/bash
+
+# Setup:
+#
+# edit .env:
+#
+# ```
+# ROOM_ID=NNNNNNNNN # chatwork room id (https://www.chatwork.com/#!ridNNNNNNNN)
+# WORKDIR=_work_dir_name_
+# ```
+
+cd `dirname $0`
+echo "usage: $0 [branch_name]"
+. .env
+
+case $0 in
+    *PRD_UP)
+        MODE=pro
+        echo "PRD環境, OK? | Ctrl-C to stop." && read i
+        echo "PRD環境, OK? | Ctrl-C to stop." && read i
+        echo "PRD環境, OK? | Ctrl-C to stop." && read i
+        echo "PRD環境, OK? | Ctrl-C to stop." && read i
+        echo "PRD環境, OK? | Ctrl-C to stop." && read i
+        ;;
+    *STG_UP)
+        MODE=stg
+        ;;
+
+    *)
+        echo "Usage: PRD_UP/STG_UP."
+        exit 1
+esac
+
+# remove tmpfile safety
+atexit() {
+    [[ -n ${tmpfile-} ]] && rm -f "$tmpfile"
+}
+trap atexit EXIT
+trap 'rc=$?; trap - EXIT; atexit; exit $?' INT PIPE TERM
+#
+
+#
+# 以下のような、やりたい仕事の列挙を作る
+#
+#CMD stg "cd $WORKDIR && git pull && sudo rm -rf tmp/* && composer install -n && sudo rm -rf tmp/* && bin/cake migrations migrate && sudo rm -rf tmp/*"
+
+BRANCH=$1
+RM="sudo rm -rf tmp/*"
+CMDS="cd $WORKDIR"
+
+add(){
+    CMDS="$CMDS && $RM && $1 && $RM"
+}
+
+create_cmd(){
+    #add "sudo rm -rf vendor && composer install -n"
+    if [ "$BRANCH" == "" ]; then
+        TARGET_BRANCH="not specified: will not change"
+    else
+        TARGET_BRANCH=$BRANCH
+        add "git checkout $BRANCH"
+    fi
+    echo
+    echo "[[[ branch ${TARGET_BRANCH} ]]]"
+    echo
+
+    add "git pull"
+    add "bin/cake migrations migrate"
+    add "bin/cake cache clear_all"
+    add "composer install -n"
+#    add "bin/cake migrations seed --seed UsersSeed"
+}
+
+#
+# run $CMD and update remove enriroment
+#
+
+exec_update(){
+    tmpfile=$(mktemp "/tmp/${0##*/}.tmp.XXXXXX")
+    CMD $MODE "$CMDS && $RM" | sed "s/[\r\n]//g" >| $tmpfile
+    #CMD $MODE "$CMDS && $RM" | tee >(local ret ; grep -c "Fast-forward")  #サブシェルの結果をもらいたい...
+
+    FAST_FORWARD=`grep -c "Fast-forward" $tmpfile`
+    COMMIT_RANGE=`grep "^Updating" $tmpfile | awk '{print $2}'`
+    cat $tmpfile
+}
+
+get_commit_log(){
+    echo
+    git --no-pager log --oneline ${COMMIT_RANGE}
+}
+
+
+sendmsg() {
+    cd $WORKDIR
+    COMMIT_MSG=`get_commit_log "$COMMIT_RANGE"`
+    cd ..
+    if [ "$FAST_FORWARD" -eq 1 ];then
+        php ../etc/post-chatwork/post.php "[$MODE] 更新しました: $COMMIT_MSG" $ROOM_ID
+    fi
+}
+
+create_cmd
+echo $CMDS
+exec_update
+sendmsg
