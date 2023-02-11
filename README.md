@@ -22,7 +22,7 @@ API_TOKEN=
 
 Create `../.env` at the project top directory (where composer.json exists)
 ```
-ROOM_ID=__CHATWORK_ROOM_ID__
+ROOM_ID=__CHATWORK_ROOM_ID__ # https://www.chatwork.com/#!ridNNNNNNN -> NNNNNNN
 WORKDIR=__project_top_directory_name__
 ```
 
