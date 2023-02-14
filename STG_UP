@@ -78,11 +78,16 @@ create_cmd(){
 exec_update(){
     tmpfile=$(mktemp "/tmp/${0##*/}.tmp.XXXXXX")
     CMD $MODE "$CMDS && $RM" | sed "s/[\r\n]//g" >| $tmpfile
-    #CMD $MODE "$CMDS && $RM" | tee >(local ret ; grep -c "Fast-forward")  #サブシェルの結果をもらいたい...
+    cat $tmpfile
 
     FAST_FORWARD=`grep -c "Fast-forward" $tmpfile`
+    if [ "$FAST_FORWARD" -ne 1 ]; then
+      echo "Already up to date or SSH failed. exit"
+      exit 1
+    fi
+    #CMD $MODE "$CMDS && $RM" | tee >(local ret ; grep -c "Fast-forward")  #サブシェルの結果をもらいたい...
+
     COMMIT_RANGE=`grep "^Updating" $tmpfile | awk '{print $2}'`
-    cat $tmpfile
 }
 
 get_commit_log(){
